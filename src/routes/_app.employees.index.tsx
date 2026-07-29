@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import api from "@/services/api";
+import { DEPARTMENTS, REGIONS, gapAnalysis, getProfile } from "@/data/mockData";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Download, LayoutGrid, Rows3, Search } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
@@ -8,7 +10,7 @@ import { MeterBar } from "@/components/common/competency-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DEPARTMENTS, REGIONS, employees, gapAnalysis, getProfile } from "@/data/mockData";
+
 
 export const Route = createFileRoute("/_app/employees/")({
   head: () => ({
@@ -28,6 +30,42 @@ function EmployeesPage() {
   const [region, setRegion] = useState("all");
   const [readiness, setReadiness] = useState("all");
   const [view, setView] = useState<"grid" | "table">("table");
+  const [employees, setEmployees] = useState<any[]>([]);
+const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+ const fetchEmployees = async () => {
+  try {
+    const res = await api.get("/employees");
+
+    const mappedEmployees = res.data.map((emp: any) => ({
+      id: emp._id,
+      employeeId: emp.employeeId,
+      name: emp.name,
+      department: emp.department,
+      region: "Southern Region", // Temporary
+      currentRole: emp.designation,
+      grade: emp.grade,
+      targetRoleId: emp.targetRole,
+      readiness:
+        emp.readinessScore >= 80
+          ? "Ready Now"
+          : emp.readinessScore >= 60
+          ? "Ready 1-2 Yrs"
+          : "Development Needed",
+      photo: `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.name)}`,
+    }));
+
+    setEmployees(mappedEmployees);
+  } catch (error) {
+    console.error("Failed to fetch employees:", error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+ fetchEmployees();
+}, []);
 
   const filtered = useMemo(
     () =>
@@ -38,9 +76,11 @@ function EmployeesPage() {
           (readiness === "all" || e.readiness === readiness) &&
           (e.name + e.currentRole + e.employeeId).toLowerCase().includes(query.toLowerCase()),
       ),
-    [query, dept, region, readiness],
+    [employees, query, dept, region, readiness],
   );
-
+if (loading) {
+  return <div className="p-6">Loading employees...</div>;
+}
   return (
     <>
       <PageHeader
@@ -115,7 +155,8 @@ function EmployeesPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map((e) => {
-                const score = gapAnalysis(e.id, e.targetRoleId).readinessScore;
+                const analysis = gapAnalysis(e.id, e.targetRoleId);
+                const score = analysis?.readinessScore ?? 0;
                 return (
                   <tr key={e.id} className="transition-colors hover:bg-muted/50">
                     <td className="px-4 py-3">
@@ -130,7 +171,7 @@ function EmployeesPage() {
                     <td className="px-4 py-3 text-muted-foreground">{e.department}</td>
                     <td className="px-4 py-3 text-muted-foreground">{e.region}</td>
                     <td className="px-4 py-3"><StatusBadge label={e.grade} tone="info" /></td>
-                    <td className="px-4 py-3 text-muted-foreground">{getProfile(e.targetRoleId)?.title}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{e.targetRoleId}</td>
                     <td className="px-4 py-3"><StatusBadge label={e.readiness} tone={readinessTone(e.readiness)} /></td>
                     <td className="w-44 px-4 py-3">
                       <div className="flex items-center gap-2">
