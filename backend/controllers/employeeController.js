@@ -23,7 +23,17 @@ const createEmployee = async (req, res) => {
 };
 const getEmployeeById = async (req, res) => {
     try {
-        const employee = await Employee.findById(req.params.id);
+        const { id } = req.params;
+        let employee = null;
+        if (id.match(/^[0-9a-fA-F]{24}$/)) {
+            employee = await Employee.findById(id);
+        }
+        if (!employee) {
+            employee = await Employee.findOne({ employeeId: id });
+        }
+        if (!employee) {
+            employee = await Employee.findOne({ id });
+        }
 
         if (!employee) {
             return res.status(404).json({ message: "Employee not found" });

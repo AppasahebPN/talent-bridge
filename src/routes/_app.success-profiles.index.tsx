@@ -1,11 +1,12 @@
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Briefcase, Search, Target } from "lucide-react";
-import { useState } from "react";
 import { PageHeader } from "@/components/common/page-header";
 import { StatusBadge } from "@/components/common/badges";
 import { MeterBar } from "@/components/common/competency-card";
 import { Input } from "@/components/ui/input";
-import { successProfiles } from "@/data/mockData";
+import { successProfiles as mockProfiles } from "@/data/mockData";
+import { fetchSuccessProfilesApi } from "@/services/apiService";
 
 export const Route = createFileRoute("/_app/success-profiles/")({
   head: () => ({
@@ -21,7 +22,51 @@ export const Route = createFileRoute("/_app/success-profiles/")({
 
 function SuccessProfilesPage() {
   const [query, setQuery] = useState("");
-  const list = successProfiles.filter((p) => (p.title + p.grade + p.band).toLowerCase().includes(query.toLowerCase()));
+  const [profiles, setProfiles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await fetchSuccessProfilesApi();
+        if (data && data.length > 0) {
+          const mapped = data.map((p: any) => ({
+            id: p._id || p.id,
+            title: p.title,
+            grade: p.grade,
+            band: p.band,
+            summary: p.summary,
+            competencies: p.competencies?.map((c: any) => ({
+              name: c.competency?.name || c.name || "Core Competency",
+              score: c.score || c.requiredScore || 80,
+            })) || [],
+            openings: p.openings ?? 1,
+            functionalExposure: p.functionalExposure || ["Transmission O&M", "Project Execution"],
+          }));
+          setProfiles(mapped);
+        } else {
+          setProfiles(mockProfiles);
+        }
+      } catch {
+        setProfiles(mockProfiles);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  const list = profiles.filter((p) => (p.title + p.grade + p.band).toLowerCase().includes(query.toLowerCase()));
+
+  if (loading) {
+    return (
+      <div className="surface-card flex flex-col items-center justify-center p-12 text-center">
+        <div className="size-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="mt-4 font-medium text-foreground">Loading Success Profiles...</p>
+        <p className="mt-1 text-xs text-muted-foreground">Fetching benchmarks from enterprise API</p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -40,7 +85,8 @@ function SuccessProfilesPage() {
 
       <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
         {list.map((p) => {
-          const avg = Math.round(p.competencies.reduce((s, c) => s + c.score, 0) / p.competencies.length);
+          const compCount = p.competencies?.length || 1;
+          const avg = Math.round((p.competencies || []).reduce((s: number, c: any) => s + (c.score || 0), 0) / compCount);
           return (
             <Link key={p.id} to="/success-profiles/$id" params={{ id: p.id }} className="surface-card grid-lift flex flex-col p-5">
               <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3">
@@ -65,7 +111,7 @@ function SuccessProfilesPage() {
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <StatusBadge label={`${p.openings} opening(s)`} tone={p.openings > 2 ? "danger" : p.openings > 1 ? "warning" : "success"} />
                 <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  <Briefcase className="size-3.5" /> {p.functionalExposure.length} functional areas
+                  <Briefcase className="size-3.5" /> {p.functionalExposure?.length || 2} functional areas
                 </span>
               </div>
             </Link>

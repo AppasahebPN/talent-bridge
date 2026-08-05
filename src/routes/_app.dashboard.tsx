@@ -51,16 +51,80 @@ function DashboardPage() {
   return <OrgDashboard committee={session?.role === "committee"} />;
 }
 
+import { useEffect, useState } from "react";
+import { fetchEmployeesApi, fetchSuccessProfilesApi } from "@/services/apiService";
+
 function OrgDashboard({ committee }: { committee: boolean }) {
-  const readyNow = employees.filter((e) => e.readiness === "Ready Now");
-  const ready12 = employees.filter((e) => e.readiness === "Ready 1-2 Yrs");
-  const ready35 = employees.filter((e) => e.readiness === "Ready 3-5 Yrs");
-  const devNeeded = employees.filter((e) => e.readiness === "Development Needed");
-  const hiPo = employees.filter((e) => e.highPotential);
-  const activeIdps = employees.filter((e) => e.idpProgress < 100);
+  const [empList, setEmpList] = useState<any[]>([]);
+  const [profiles, setProfiles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [empData, profileData] = await Promise.all([
+          fetchEmployeesApi().catch(() => null),
+          fetchSuccessProfilesApi().catch(() => null),
+        ]);
+
+        if (empData && empData.length > 0) {
+          const mapped = empData.map((e: any) => ({
+            id: e._id || e.id,
+            employeeId: e.employeeId,
+            name: e.name,
+            department: e.department,
+            region: e.region || "Southern Region",
+            currentRole: e.designation || e.currentRole || "—",
+            grade: e.grade,
+            experience: e.experience || 10,
+            targetRoleId: e.targetRole || e.targetRoleId || "SP01",
+            readiness: e.readinessScore >= 80 ? "Ready Now" : e.readinessScore >= 60 ? "Ready 1-2 Yrs" : e.readinessScore >= 40 ? "Ready 3-5 Yrs" : "Development Needed",
+            highPotential: e.highPotential ?? false,
+            photo: `https://ui-avatars.com/api/?name=${encodeURIComponent(e.name)}&background=random`,
+            idpProgress: e.idpProgress ?? 65,
+            competencies: e.competencies || [],
+          }));
+          setEmpList(mapped);
+        } else {
+          setEmpList(employees);
+        }
+
+        if (profileData && profileData.length > 0) {
+          const mappedProfiles = profileData.map((p: any) => ({
+            id: p._id || p.id,
+            title: p.title,
+            grade: p.grade,
+            band: p.band,
+            openings: p.openings ?? 1,
+            incumbent: p.incumbent || "Vacant",
+            competencies: p.competencies || [],
+          }));
+          setProfiles(mappedProfiles);
+        } else {
+          setProfiles(successProfiles);
+        }
+      } catch {
+        setEmpList(employees);
+        setProfiles(successProfiles);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  const activeEmployees = empList.length > 0 ? empList : employees;
+  const activeProfiles = profiles.length > 0 ? profiles : successProfiles;
+
+  const readyNow = activeEmployees.filter((e) => e.readiness === "Ready Now");
+  const ready12 = activeEmployees.filter((e) => e.readiness === "Ready 1-2 Yrs");
+  const ready35 = activeEmployees.filter((e) => e.readiness === "Ready 3-5 Yrs");
+  const devNeeded = activeEmployees.filter((e) => e.readiness === "Development Needed");
+  const hiPo = activeEmployees.filter((e) => e.highPotential);
+  const activeIdps = activeEmployees.filter((e) => e.idpProgress < 100);
 
   // Calculate average readiness score across all employees
-  const employeeScores = employees.map((e) => gapAnalysis(e.id, e.targetRoleId).readinessScore);
+  const employeeScores = activeEmployees.map((e) => gapAnalysis(e.id, e.targetRoleId).readinessScore);
   const avgReadiness = Math.round(employeeScores.reduce((a, b) => a + b, 0) / (employeeScores.length || 1));
 
   const readinessData = [
@@ -71,13 +135,13 @@ function OrgDashboard({ committee }: { committee: boolean }) {
   ];
 
   const competencyGap = COMPETENCIES.map((name) => {
-    const avg = Math.round(employees.reduce((s, e) => s + (e.competencies.find((c) => c.name === name)?.score ?? 0), 0) / employees.length);
-    const req = Math.round(successProfiles.reduce((s, p) => s + (p.competencies.find((c) => c.name === name)?.score ?? 0), 0) / successProfiles.length);
-    return { subject: name, Current: avg, Required: req };
+    const avg = Math.round(activeEmployees.reduce((s, e) => s + (e.competencies?.find((c: any) => c.name === name)?.score ?? 0), 0) / (activeEmployees.length || 1));
+    const req = Math.round(activeProfiles.reduce((s, p) => s + (p.competencies?.find((c: any) => c.name === name)?.score ?? 0), 0) / (activeProfiles.length || 1));
+    return { subject: name, Current: avg || 72, Required: req || 85 };
   });
 
   const deptReadinessData = DEPARTMENTS.map((d) => {
-    const deptEmps = employees.filter((e) => e.department === d);
+    const deptEmps = activeEmployees.filter((e) => e.department === d);
     return {
       name: d.length > 12 ? d.slice(0, 11) + "…" : d,
       "Ready Now": deptEmps.filter((e) => e.readiness === "Ready Now").length,
@@ -94,8 +158,8 @@ function OrgDashboard({ committee }: { committee: boolean }) {
   }));
 
   // Successor Recommendations for Critical Positions
-  const successorRecommendations = successProfiles.slice(0, 4).map((profile) => {
-    const top3 = employees
+  const successorRecommendations = activeProfiles.slice(0, 4).map((profile) => {
+    const top3 = activeEmployees
       .map((e) => {
         const gapInfo = gapAnalysis(e.id, profile.id);
         const gapPoints = gapInfo.weaknesses.reduce((sum, w) => sum + w.gap, 0);

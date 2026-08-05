@@ -7,6 +7,9 @@ import { RadarChartCard } from "@/components/charts/charts";
 import { Button } from "@/components/ui/button";
 import { employees, gapAnalysis, getProfile } from "@/data/mockData";
 
+import { useEffect, useState } from "react";
+import { fetchSuccessProfileByIdApi } from "@/services/apiService";
+
 export const Route = createFileRoute("/_app/success-profiles/$id")({
   head: () => ({
     meta: [
@@ -21,7 +24,54 @@ export const Route = createFileRoute("/_app/success-profiles/$id")({
 
 function SuccessProfileDetail() {
   const { id } = Route.useParams();
-  const profile = getProfile(id);
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await fetchSuccessProfileByIdApi(id);
+        if (data) {
+          const fallback = getProfile(id) ?? getProfile("SP01");
+          setProfile({
+            id: data._id || data.id,
+            title: data.title || fallback?.title,
+            grade: data.grade || fallback?.grade,
+            band: data.band || fallback?.band,
+            summary: data.summary || fallback?.summary,
+            competencies: data.competencies?.map((c: any) => ({
+              name: c.competency?.name || c.name || "Core Competency",
+              score: c.score || c.requiredScore || 80,
+            })) || fallback?.competencies || [],
+            experience: data.experience || fallback?.experience || [],
+            projects: data.projects || fallback?.projects || [],
+            certifications: data.certifications || fallback?.certifications || [],
+            geographicExposure: data.geographicExposure || fallback?.geographicExposure || [],
+            functionalExposure: data.functionalExposure || fallback?.functionalExposure || [],
+            openings: data.openings ?? fallback?.openings ?? 1,
+            incumbent: data.incumbent || fallback?.incumbent || "Vacant",
+          });
+        } else {
+          setProfile(getProfile(id) ?? getProfile("SP01"));
+        }
+      } catch {
+        setProfile(getProfile(id) ?? getProfile("SP01"));
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="surface-card flex flex-col items-center justify-center p-12 text-center">
+        <div className="size-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="mt-4 font-medium text-foreground">Loading Success Profile Detail...</p>
+        <p className="mt-1 text-xs text-muted-foreground">Fetching profile benchmarks from API</p>
+      </div>
+    );
+  }
 
   if (!profile) {
     return (

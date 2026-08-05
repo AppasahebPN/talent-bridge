@@ -10,6 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { boxLabel } from "@/utils/talent";
 import { employees, gapAnalysis, getEmployee, getMentor, getProfile, getProject, getTraining, successProfiles } from "@/data/mockData";
 
+import { useEffect, useState } from "react";
+import { fetchEmployeeByIdApi } from "@/services/apiService";
+
 export const Route = createFileRoute("/_app/employees/$id")({
   head: () => ({
     meta: [
@@ -24,7 +27,62 @@ export const Route = createFileRoute("/_app/employees/$id")({
 
 function EmployeeProfilePage() {
   const { id } = Route.useParams();
-  const emp = getEmployee(id);
+  const [emp, setEmp] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await fetchEmployeeByIdApi(id);
+        if (data) {
+          const fallbackMock = getEmployee(id) ?? employees[0];
+          setEmp({
+            id: data._id || data.id,
+            employeeId: data.employeeId || fallbackMock.employeeId,
+            name: data.name || fallbackMock.name,
+            department: data.department || fallbackMock.department,
+            region: data.region || fallbackMock.region,
+            currentRole: data.designation || data.currentRole || fallbackMock.currentRole,
+            grade: data.grade || fallbackMock.grade,
+            experience: data.experience ?? fallbackMock.experience,
+            yearsInOrg: data.yearsInOrg ?? fallbackMock.yearsInOrg,
+            photo: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}&background=random`,
+            email: data.email || fallbackMock.email,
+            performance: data.performance || fallbackMock.performance,
+            assessmentScore: data.readinessScore || fallbackMock.assessmentScore,
+            nineBox: data.nineBox || fallbackMock.nineBox,
+            competencies: data.competencies || fallbackMock.competencies,
+            trainings: data.trainings || fallbackMock.trainings,
+            projects: data.projects || fallbackMock.projects,
+            certifications: data.certifications || fallbackMock.certifications,
+            mentorId: data.mentorId || fallbackMock.mentorId,
+            timeline: data.timeline || fallbackMock.timeline,
+            highPotential: data.highPotential ?? fallbackMock.highPotential,
+            readiness: data.readinessScore >= 80 ? "Ready Now" : data.readinessScore >= 60 ? "Ready 1-2 Yrs" : fallbackMock.readiness,
+            targetRoleId: data.targetRole || fallbackMock.targetRoleId,
+            idpProgress: data.idpProgress ?? fallbackMock.idpProgress,
+          });
+        } else {
+          setEmp(getEmployee(id) ?? employees[0]);
+        }
+      } catch {
+        setEmp(getEmployee(id) ?? employees[0]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="surface-card flex flex-col items-center justify-center p-12 text-center">
+        <div className="size-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="mt-4 font-medium text-foreground">Loading Executive Profile...</p>
+        <p className="mt-1 text-xs text-muted-foreground">Fetching profile details from API</p>
+      </div>
+    );
+  }
 
   if (!emp) {
     return (

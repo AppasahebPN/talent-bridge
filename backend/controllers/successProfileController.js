@@ -23,7 +23,25 @@ const getSuccessProfiles = async (req, res) => {
   }
 };
 
+// Get By ID
+const getSuccessProfileById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let profile = await SuccessProfile.findById(id).populate("competencies.competency");
+    if (!profile) {
+      profile = await SuccessProfile.findOne({ id }).populate("competencies.competency");
+    }
+    if (!profile) {
+      return res.status(404).json({ message: "Success profile not found" });
+    }
+    res.json(profile);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   createSuccessProfile,
   getSuccessProfiles,
+  getSuccessProfileById,
 };
