@@ -1,29 +1,54 @@
-# Welcome to your Lovable project
+# POWERGRID TalentBridge AI
 
-This project was built with [Lovable](https://lovable.dev).
+### AI-Powered Succession Planning & Leadership Development System
+**Smart India Hackathon (SIH) 2026**
 
-## Build with Lovable
+---
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+## Executive Summary
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+**TalentBridge AI** is an enterprise leadership intelligence and succession planning platform built for **Power Grid Corporation of India Limited (POWERGRID)**, a Maharatna CPSU under the Ministry of Power, Government of India.
 
-## Development
+The system automates executive talent mapping, quantifies competency gaps against validated leadership success profiles, predicts promotion readiness horizons, and generates personalized Individual Development Plans (IDPs) with measurable progression milestones.
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+---
 
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+## Core Capabilities
+
+- **Talent Intelligence Directory**: Searchable, filterable executive database with 9-box calibration ratings, competency scores, and mobility history.
+- **Success Profile Management**: Validated leadership role benchmarks outlining required experience, mega-project delivery, certifications, and functional exposure.
+- **AI Competency Gap Analysis**: Quantified multi-dimensional scoring comparing candidate proficiency against target role requirements.
+- **Automated AI Development Plans (IDPs)**: Sequenced 6-quarter development roadmaps incorporating IIM/ISB executive training, cross-functional rotations, stretch projects, and executive mentoring.
+- **Successor Recommendation Engine**: Top 3 AI-ranked successors per critical position with readiness scores, gap scores, promotion timelines, and recommendation rationale.
+- **Executive PDF Export**: One-click printable board-ready IDP and slate reports.
+
+---
+
+## Technology Stack
+
+- **Frontend**: React 19, TypeScript, TanStack Start & Router, Tailwind CSS v4, Lucide Icons, Recharts
+- **Backend**: Node.js, Express, MongoDB (Mongoose), REST APIs
+- **AI Engine**: Gemini AI / Fallback Competency Engine
+
+---
+
+## Local Development & Setup
+
+```bash
+# Clone repository
+git clone https://github.com/AppasahebPN/talent-bridge.git
+cd talent-bridge-main
+
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
+
+# Production build
+npm run build
 ```
 
-## Built with
+---
 
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+*Power Grid Corporation of India Limited · Internal Use Only · SIH 2026*

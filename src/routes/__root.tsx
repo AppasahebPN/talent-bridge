@@ -10,7 +10,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
+import { reportAppError } from "../lib/error-reporting";
 import { AuthProvider } from "@/hooks/use-auth";
 
 
@@ -40,7 +40,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    reportAppError(error, { boundary: "root_error_component" });
   }, [error]);
 
   return (
@@ -79,16 +79,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "POWERGRID Succession Planning System" },
+      { title: "POWERGRID | TalentBridge AI" },
       {
         name: "description",
-        content: "AI-powered succession planning and leadership development platform for POWERGRID.",
+        content: "AI-Powered Succession Planning and Leadership Development Platform for POWERGRID Corporation of India.",
       },
-      { name: "author", content: "POWERGRID" },
-      { property: "og:title", content: "POWERGRID Succession Planning System" },
+      { name: "author", content: "POWERGRID Corporation of India Limited" },
+      { property: "og:title", content: "POWERGRID | TalentBridge AI" },
       {
         property: "og:description",
-        content: "AI-powered succession planning and leadership development platform for POWERGRID.",
+        content: "AI-Powered Succession Planning and Leadership Development Platform for POWERGRID Corporation of India.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

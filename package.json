@@ -1,5 +1,6 @@
 {
-  "name": "tanstack_start_ts",
+  "name": "talent-bridge-ai",
+  "description": "AI-Powered Succession Planning and Leadership Development Platform for POWERGRID Corporation of India.",
   "private": true,
   "sideEffects": false,
   "type": "module",
