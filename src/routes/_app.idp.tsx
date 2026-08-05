@@ -58,14 +58,14 @@ function IdpPage() {
         description={`Auto-generated roadmap to make ${emp.name} ready for ${analysis.profile.title}.`}
         crumbs={[{ label: "AI Development Plan" }]}
         actions={
-          <>
-            <Button variant="outline">
+          <div className="no-print flex items-center gap-2">
+            <Button variant="outline" onClick={() => window.print()}>
               <Download className="mr-2 size-4" /> Export PDF
             </Button>
             <Button asChild>
               <Link to="/progress">Track progress</Link>
             </Button>
-          </>
+          </div>
         }
       />
 

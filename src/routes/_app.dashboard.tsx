@@ -53,13 +53,22 @@ function DashboardPage() {
 
 function OrgDashboard({ committee }: { committee: boolean }) {
   const readyNow = employees.filter((e) => e.readiness === "Ready Now");
+  const ready12 = employees.filter((e) => e.readiness === "Ready 1-2 Yrs");
+  const ready35 = employees.filter((e) => e.readiness === "Ready 3-5 Yrs");
+  const devNeeded = employees.filter((e) => e.readiness === "Development Needed");
   const hiPo = employees.filter((e) => e.highPotential);
   const activeIdps = employees.filter((e) => e.idpProgress < 100);
 
-  const readinessData = ["Ready Now", "Ready 1-2 Yrs", "Ready 3-5 Yrs", "Development Needed"].map((r) => ({
-    name: r,
-    count: employees.filter((e) => e.readiness === r).length,
-  }));
+  // Calculate average readiness score across all employees
+  const employeeScores = employees.map((e) => gapAnalysis(e.id, e.targetRoleId).readinessScore);
+  const avgReadiness = Math.round(employeeScores.reduce((a, b) => a + b, 0) / (employeeScores.length || 1));
+
+  const readinessData = [
+    { name: "Ready Now", count: readyNow.length },
+    { name: "Ready 1-2 Yrs", count: ready12.length },
+    { name: "Ready 3-5 Yrs", count: ready35.length },
+    { name: "Development Needed", count: devNeeded.length },
+  ];
 
   const competencyGap = COMPETENCIES.map((name) => {
     const avg = Math.round(employees.reduce((s, e) => s + (e.competencies.find((c) => c.name === name)?.score ?? 0), 0) / employees.length);
@@ -67,17 +76,46 @@ function OrgDashboard({ committee }: { committee: boolean }) {
     return { subject: name, Current: avg, Required: req };
   });
 
-  const deptData = DEPARTMENTS.map((d) => ({
-    name: d.length > 14 ? d.slice(0, 13) + "…" : d,
-    employees: employees.filter((e) => e.department === d).length,
-    hipo: employees.filter((e) => e.department === d && e.highPotential).length,
+  const deptReadinessData = DEPARTMENTS.map((d) => {
+    const deptEmps = employees.filter((e) => e.department === d);
+    return {
+      name: d.length > 12 ? d.slice(0, 11) + "…" : d,
+      "Ready Now": deptEmps.filter((e) => e.readiness === "Ready Now").length,
+      "Ready 1-2 Yrs": deptEmps.filter((e) => e.readiness === "Ready 1-2 Yrs").length,
+      "Dev Needed": deptEmps.filter((e) => e.readiness === "Development Needed" || e.readiness === "Ready 3-5 Yrs").length,
+    };
+  });
+
+  const trainingCompletionData = ["Q1 2025", "Q2 2025", "Q3 2025", "Q4 2025", "Q1 2026"].map((q, i) => ({
+    name: q,
+    "Nominated": 45 + i * 12,
+    "Completed": 38 + i * 14,
+    "Completion %": Math.min(96, Math.round(((38 + i * 14) / (45 + i * 12)) * 100)),
   }));
 
-  const progressTrend = ["Q1", "Q2", "Q3", "Q4"].map((q, i) => ({
-    name: q,
-    Planned: 25 * (i + 1),
-    Achieved: Math.min(100, 18 + i * 22),
-  }));
+  // Successor Recommendations for Critical Positions
+  const successorRecommendations = successProfiles.slice(0, 4).map((profile) => {
+    const top3 = employees
+      .map((e) => {
+        const gapInfo = gapAnalysis(e.id, profile.id);
+        const gapPoints = gapInfo.weaknesses.reduce((sum, w) => sum + w.gap, 0);
+        return {
+          employee: e,
+          readinessScore: gapInfo.readinessScore,
+          gapScore: gapPoints,
+          timeline: e.readiness === "Ready Now" ? "Immediate" : e.readiness === "Ready 1-2 Yrs" ? "6–12 Months" : "18–24 Months",
+          reason: gapInfo.readinessScore >= 85
+            ? `Top performer with ${e.experience} yrs exp, meets ${gapInfo.strengths.length}/${gapInfo.rows.length} competency bars.`
+            : gapInfo.readinessScore >= 75
+              ? `Strong leadership track record in ${e.department}, minor gap in ${gapInfo.weaknesses[0]?.name ?? "strategic planning"}.`
+              : `High potential candidate in ${e.grade} grade, candidate for 1-2 year accelerated IDP.`,
+        };
+      })
+      .sort((a, b) => b.readinessScore - a.readinessScore)
+      .slice(0, 3);
+
+    return { profile, top3 };
+  });
 
   return (
     <>
@@ -99,15 +137,19 @@ function OrgDashboard({ committee }: { committee: boolean }) {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-        <KpiCard label="Total Employees" value={employees.length} icon={<Users className="size-5" />} hint="In succession pool" />
-        <KpiCard label="Successors Identified" value={readyNow.length + 9} delta="+4 QoQ" icon={<UserCheck className="size-5" />} tone="success" />
-        <KpiCard label="High Potential" value={hiPo.length} icon={<Star className="size-5" />} tone="warning" hint="9-box top quadrants" />
-        <KpiCard label="Leadership Positions" value={successProfiles.length} icon={<Briefcase className="size-5" />} tone="info" hint="Critical roles mapped" />
-        <KpiCard label="Active IDPs" value={activeIdps.length} icon={<ClipboardList className="size-5" />} hint="In execution" />
-        <KpiCard label="Ready for Promotion" value={readyNow.length} delta="+2" icon={<Rocket className="size-5" />} tone="success" />
+      {/* KPI Section */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
+        <KpiCard label="Total Employees" value={employees.length} icon={<Users className="size-5" />} hint="In talent pool" />
+        <KpiCard label="Ready Now" value={readyNow.length} tone="success" icon={<UserCheck className="size-5" />} hint="Immediate successors" />
+        <KpiCard label="Ready 1–2 Yrs" value={ready12.length} tone="info" icon={<CalendarClock className="size-5" />} hint="Near-term pipeline" />
+        <KpiCard label="Ready 3–5 Yrs" value={ready35.length} icon={<Rocket className="size-5" />} hint="Medium-term bench" />
+        <KpiCard label="Dev Needed" value={devNeeded.length} tone="warning" icon={<BookOpenCheck className="size-5" />} hint="Requires targeted IDP" />
+        <KpiCard label="High Potential" value={hiPo.length} tone="warning" icon={<Star className="size-5" />} hint="Top 9-Box quadrants" />
+        <KpiCard label="Avg Readiness" value={`${avgReadiness}%`} tone="success" icon={<TrendingUp className="size-5" />} hint="Organisation-wide" />
+        <KpiCard label="Active IDPs" value={activeIdps.length} icon={<ClipboardList className="size-5" />} hint="In execution phase" />
       </div>
 
+      {/* Analytics Charts Section */}
       <div className="mt-6 grid gap-4 xl:grid-cols-2">
         <SectionCard title="Leadership Readiness Distribution" description="Successor pool by readiness horizon">
           <BarChartCard
@@ -128,100 +170,103 @@ function OrgDashboard({ committee }: { committee: boolean }) {
           />
         </SectionCard>
 
-        <SectionCard title="Department-wise Talent Distribution" description="Headcount and high-potential density">
+        <SectionCard title="Department-wise Leadership Readiness" description="Successor density by department and readiness tier">
           <BarChartCard
-            data={deptData}
+            data={deptReadinessData}
             xKey="name"
             bars={[
-              { key: "employees", name: "Employees", color: "var(--chart-1)" },
-              { key: "hipo", name: "High potential", color: "var(--chart-3)" },
+              { key: "Ready Now", name: "Ready Now", color: "var(--chart-3)" },
+              { key: "Ready 1-2 Yrs", name: "Ready 1-2 Yrs", color: "var(--chart-1)" },
+              { key: "Dev Needed", name: "Dev Needed", color: "var(--chart-4)" },
             ]}
           />
         </SectionCard>
 
-        <SectionCard title="Progress of Development Plans" description="Planned vs achieved IDP milestone completion">
+        <SectionCard title="Training Completion & IDP Execution" description="Quarterly planned vs completed development milestones">
           <LineChartCard
-            data={progressTrend}
+            data={trainingCompletionData}
             xKey="name"
             lines={[
-              { key: "Planned", name: "Planned %", color: "var(--chart-2)" },
-              { key: "Achieved", name: "Achieved %", color: "var(--chart-1)" },
+              { key: "Nominated", name: "Nominated", color: "var(--chart-2)" },
+              { key: "Completed", name: "Completed", color: "var(--chart-1)" },
             ]}
           />
         </SectionCard>
       </div>
 
-      <div className="mt-6 grid gap-4 xl:grid-cols-3">
+      {/* Task 3: Successor Recommendation for Critical Roles */}
+      <div className="mt-6">
         <SectionCard
-          title="Top successor slate"
-          description="Highest readiness against target success profiles"
-          className="xl:col-span-2"
+          title="Top Successor Recommendations for Critical Positions"
+          description="AI-ranked top 3 successors per leadership position with readiness score, gap score, promotion timeline, and rationale"
           actions={
             <Button variant="ghost" size="sm" asChild>
-              <Link to="/employees">View all</Link>
+              <Link to="/success-profiles">View all profiles</Link>
             </Button>
           }
         >
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <th className="pb-2 font-semibold">Candidate</th>
-                  <th className="pb-2 font-semibold">Target role</th>
-                  <th className="pb-2 font-semibold">Readiness</th>
-                  <th className="pb-2 font-semibold">Score</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {employees
-                  .map((e) => ({ e, score: gapAnalysis(e.id, e.targetRoleId).readinessScore }))
-                  .sort((a, b) => b.score - a.score)
-                  .slice(0, 6)
-                  .map(({ e, score }) => (
-                    <tr key={e.id} className="transition-colors hover:bg-muted/60">
-                      <td className="py-2.5">
-                        <Link to="/employees/$id" params={{ id: e.id }} className="flex items-center gap-2.5">
-                          <img src={e.photo} alt="" className="size-8 rounded-full object-cover" />
-                          <span className="min-w-0">
-                            <span className="block truncate font-medium">{e.name}</span>
-                            <span className="block truncate text-xs text-muted-foreground">{e.grade} · {e.region}</span>
-                          </span>
-                        </Link>
-                      </td>
-                      <td className="py-2.5 text-muted-foreground">{getProfile(e.targetRoleId)?.title}</td>
-                      <td className="py-2.5">
-                        <StatusBadge label={e.readiness} tone={readinessTone(e.readiness)} />
-                      </td>
-                      <td className="w-40 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <MeterBar value={score} />
-                          <span className="w-9 shrink-0 text-right text-xs font-semibold tabular-nums">{score}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Critical vacancies watchlist" description="Positions with succession risk">
-          <ul className="space-y-3">
-            {successProfiles.slice(0, 5).map((p) => (
-              <li key={p.id} className="rounded-lg border border-border p-3 transition-colors hover:bg-muted/50">
-                <Link to="/success-profiles/$id" params={{ id: p.id }} className="block">
-                  <p className="truncate text-sm font-medium">{p.title}</p>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">{p.grade} · {p.openings} opening(s)</p>
-                  <div className="mt-2">
-                    <StatusBadge
-                      label={p.openings > 2 ? "High risk" : p.openings > 1 ? "Medium risk" : "Covered"}
-                      tone={p.openings > 2 ? "danger" : p.openings > 1 ? "warning" : "success"}
-                    />
+          <div className="space-y-6">
+            {successorRecommendations.map(({ profile, top3 }) => (
+              <div key={profile.id} className="rounded-xl border border-border bg-muted/30 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
+                  <div>
+                    <Link to="/success-profiles/$id" params={{ id: profile.id }} className="text-base font-semibold text-foreground hover:underline">
+                      {profile.title}
+                    </Link>
+                    <span className="ml-2 text-xs text-muted-foreground">({profile.grade} · {profile.band})</span>
                   </div>
-                </Link>
-              </li>
+                  <div className="flex items-center gap-2">
+                    <StatusBadge label={`Incumbent: ${profile.incumbent}`} tone="neutral" />
+                    <StatusBadge label={`${profile.openings} opening(s)`} tone={profile.openings > 1 ? "warning" : "info"} />
+                  </div>
+                </div>
+
+                <div className="mt-3 grid gap-3 md:grid-cols-3">
+                  {top3.map(({ employee, readinessScore, gapScore, timeline, reason }, index) => (
+                    <div key={employee.id} className="surface-card flex flex-col justify-between p-3.5 transition-shadow hover:shadow-md">
+                      <div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="grid size-6 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                            #{index + 1}
+                          </span>
+                          <StatusBadge label={timeline} tone={index === 0 ? "success" : "info"} />
+                        </div>
+
+                        <Link to="/employees/$id" params={{ id: employee.id }} className="mt-2.5 flex items-center gap-2.5">
+                          <img src={employee.photo} alt="" className="size-9 rounded-full object-cover ring-2 ring-primary/20" />
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold text-foreground text-sm">{employee.name}</p>
+                            <p className="truncate text-xs text-muted-foreground">{employee.currentRole}</p>
+                          </div>
+                        </Link>
+
+                        <div className="mt-3 grid grid-cols-2 gap-2 rounded-lg bg-muted/60 p-2 text-center text-xs">
+                          <div>
+                            <span className="block text-muted-foreground text-[10px]">Readiness</span>
+                            <span className="font-bold text-success text-sm">{readinessScore}%</span>
+                          </div>
+                          <div>
+                            <span className="block text-muted-foreground text-[10px]">Gap Score</span>
+                            <span className="font-bold text-foreground text-sm">{gapScore} pts</span>
+                          </div>
+                        </div>
+
+                        <p className="mt-2.5 text-xs text-muted-foreground leading-relaxed">
+                          <span className="font-medium text-foreground">Rationale: </span>
+                          {reason}
+                        </p>
+                      </div>
+
+                      <div className="mt-3 pt-2 border-t border-border/40 flex justify-between items-center text-xs text-muted-foreground">
+                        <span>{employee.grade} · {employee.region}</span>
+                        <MeterBar value={readinessScore} className="w-16" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             ))}
-          </ul>
+          </div>
         </SectionCard>
       </div>
     </>

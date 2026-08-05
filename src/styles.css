@@ -182,3 +182,21 @@
     transform: translateY(-2px);
   }
 }
+
+@media print {
+  aside, header, nav, .no-print {
+    display: none !important;
+  }
+  .lg\:pl-64 {
+    padding-left: 0 !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .surface-card {
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+    break-inside: avoid;
+  }
+}

@@ -86,7 +86,13 @@ function EmployeesPage() {
     [employeeList, query, dept, region, readiness],
   );
 if (loading) {
-  return <div className="p-6">Loading employees...</div>;
+  return (
+    <div className="surface-card flex flex-col items-center justify-center p-12 text-center">
+      <div className="size-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <p className="mt-4 font-medium text-foreground">Loading Talent Directory...</p>
+      <p className="mt-1 text-xs text-muted-foreground">Fetching executive profiles from enterprise database</p>
+    </div>
+  );
 }
   return (
     <>
@@ -140,7 +146,16 @@ if (loading) {
         </Select>
       </div>
 
-      {view === "grid" ? (
+      {filtered.length === 0 ? (
+        <div className="surface-card flex flex-col items-center justify-center p-12 text-center">
+          <Search className="size-8 text-muted-foreground" />
+          <p className="mt-3 font-semibold text-foreground">No matching executives found</p>
+          <p className="mt-1 text-xs text-muted-foreground">Try adjusting your search query or clear select filters.</p>
+          <Button variant="outline" className="mt-4" onClick={() => { setQuery(""); setDept("all"); setRegion("all"); setReadiness("all"); }}>
+            Reset Filters
+          </Button>
+        </div>
+      ) : view === "grid" ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {filtered.map((e) => (
             <EmployeeCard key={e.id} employee={e} />
