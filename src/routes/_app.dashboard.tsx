@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { PageHeader, SectionCard } from "@/components/common/page-header";
 import { KpiCard } from "@/components/common/kpi-card";
-import { BarChartCard, CHART_COLORS, LineChartCard, RadarChartCard } from "@/components/charts/charts";
+import { BarChartCard, LineChartCard, RadarChartCard } from "@/components/charts/charts";
 import { StatusBadge, readinessTone, statusTone } from "@/components/common/badges";
 import { MeterBar } from "@/components/common/competency-card";
 import { Button } from "@/components/ui/button";
@@ -229,7 +229,8 @@ function OrgDashboard({ committee }: { committee: boolean }) {
 }
 
 function EmployeeDashboard({ employeeId }: { employeeId: string }) {
-  const emp = getEmployee(employeeId)!;
+  // Fall back to the first mock employee if the session ID doesn't match any mock record
+  const emp = getEmployee(employeeId) ?? employees[0];
   const analysis = gapAnalysis(emp.id, emp.targetRoleId);
   const idp = buildIdp(emp.id);
   const mentor = getMentor(emp.mentorId);

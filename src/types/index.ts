@@ -87,3 +87,23 @@ export interface IdpActivity {
   status: "Completed" | "In Progress" | "Pending";
   impact: number;
 }
+
+export interface GenerateIdpRequest {
+  employeeId: string;
+}
+
+export interface GenerateIdpResponse {
+  success: boolean;
+  source: string;
+  employee: Record<string, unknown>;
+  idp: {
+    readinessScore: number;
+    readinessSummary: string;
+    competencyGaps: string[];
+    training: string[];
+    certifications: string[];
+    mentor: string;
+    jobRotation: string;
+    timeline: string;
+  };
+}

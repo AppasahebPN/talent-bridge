@@ -8,7 +8,7 @@ import { BarChartCard, LineChartCard } from "@/components/charts/charts";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { boxLabel } from "@/utils/talent";
-import { employees, gapAnalysis, getEmployee, getMentor, getProfile, getProject, getTraining } from "@/data/mockData";
+import { employees, gapAnalysis, getEmployee, getMentor, getProfile, getProject, getTraining, successProfiles } from "@/data/mockData";
 
 export const Route = createFileRoute("/_app/employees/$id")({
   head: () => ({
@@ -38,7 +38,7 @@ function EmployeeProfilePage() {
   }
 
   const analysis = gapAnalysis(emp.id, emp.targetRoleId);
-  const target = getProfile(emp.targetRoleId)!;
+  const target = getProfile(emp.targetRoleId) ?? successProfiles[0];
   const mentor = getMentor(emp.mentorId);
   const peers = employees.filter((e) => e.department === emp.department && e.id !== emp.id).slice(0, 3);
 

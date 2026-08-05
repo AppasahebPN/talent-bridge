@@ -28,7 +28,7 @@ function GapAnalysisPage() {
   const isEmployee = session?.role === "employee";
   const defaultEmp = session?.employeeId ?? employees[0].id;
   const [empId, setEmpId] = useState(defaultEmp);
-  const [profileId, setProfileId] = useState(employees.find((e) => e.id === defaultEmp)!.targetRoleId);
+  const [profileId, setProfileId] = useState(employees.find((e) => e.id === defaultEmp)?.targetRoleId ?? successProfiles[0].id);
 
   const { emp, profile, rows, readinessScore, strengths, weaknesses } = gapAnalysis(empId, profileId);
   const radarData = rows.map((r) => ({ subject: r.name, Candidate: r.current, Required: r.required }));

@@ -32,7 +32,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) setSession(JSON.parse(raw) as Session);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Session;
+        // Validate that the session employee exists in mock data
+        const valid = employees.some((e) => e.id === parsed.employeeId);
+        if (valid) {
+          setSession(parsed);
+        } else {
+          // Clear stale session with mismatched ID
+          window.localStorage.removeItem(STORAGE_KEY);
+        }
+      }
     } catch {
       /* ignore */
     }

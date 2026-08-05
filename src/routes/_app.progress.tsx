@@ -34,7 +34,7 @@ function ProgressPage() {
   const { session } = useAuth();
   const isEmployee = session?.role === "employee";
   const [empId, setEmpId] = useState(session?.employeeId ?? employees[0].id);
-  const emp = employees.find((e) => e.id === empId)!;
+  const emp = employees.find((e) => e.id === empId) ?? employees[0];
   const plan = buildIdp(emp.id);
   const analysis = gapAnalysis(emp.id, emp.targetRoleId);
   const completed = plan.filter((p) => p.status === "Completed");

@@ -519,15 +519,30 @@ export function buildIdp(employeeId: string): IdpActivity[] {
 }
 
 export function gapAnalysis(employeeId: string, profileId: string) {
-  const emp = getEmployee(employeeId)!;
-  const profile = getProfile(profileId)!;
+  const emp = getEmployee(employeeId);
+  const profile = getProfile(profileId);
+
+  // Return safe defaults when employee or profile is not found in mock data
+  if (!emp || !profile) {
+    const fallbackEmp = emp ?? employees[0];
+    const fallbackProfile = profile ?? successProfiles[0];
+    return {
+      emp: fallbackEmp,
+      profile: fallbackProfile,
+      rows: [] as { name: string; required: number; current: number; gap: number }[],
+      readinessScore: 0,
+      strengths: [] as { name: string; required: number; current: number; gap: number }[],
+      weaknesses: [] as { name: string; required: number; current: number; gap: number }[],
+    };
+  }
+
   const rows = profile.competencies.map((req) => {
     const current = emp.competencies.find((c) => c.name === req.name)?.score ?? 0;
     return { name: req.name, required: req.score, current, gap: Math.max(0, req.score - current) };
   });
   const totalRequired = rows.reduce((s, r) => s + r.required, 0);
   const totalAchieved = rows.reduce((s, r) => s + Math.min(r.current, r.required), 0);
-  const readinessScore = Math.round((totalAchieved / totalRequired) * 100);
+  const readinessScore = totalRequired > 0 ? Math.round((totalAchieved / totalRequired) * 100) : 0;
   const strengths = rows.filter((r) => r.current >= r.required).sort((a, b) => b.current - a.current);
   const weaknesses = rows.filter((r) => r.gap > 0).sort((a, b) => b.gap - a.gap);
   return { emp, profile, rows, readinessScore, strengths, weaknesses };
